@@ -3,8 +3,9 @@ import * as Sync from "./sync";
 import { Async } from ".";
 import * as cloneDeep from "clone-deep";
 
-export interface AsyncFactoryConfig {
+export interface AsyncFactoryConfig<T> {
   readonly startingSequenceNumber?: number;
+  readonly afterBuild?: (m: T) => void;
 }
 
 export type FactoryFunc<T, K extends keyof T, U = T> = keyof T extends K
@@ -58,7 +59,7 @@ export class Factory<T, K extends keyof T = keyof T>
 
   constructor(
     readonly builder: Builder<T, K>,
-    private readonly config: AsyncFactoryConfig | undefined
+    private readonly config: AsyncFactoryConfig<T> | undefined
   ) {
     this.seqNum = this.getStartingSequenceNumber();
   }
@@ -81,6 +82,7 @@ export class Factory<T, K extends keyof T = keyof T>
         (v as any)[der.key] = await der.derived.build(v, seqNum);
       }
     }
+    this.config && this.config.afterBuild && this.config.afterBuild(v)
     return lift(v);
   }) as FactoryFunc<T, K, T>;
 
@@ -298,21 +300,21 @@ async function buildBase<T, K extends keyof T>(
 
 export function makeFactory<T>(
   builder: Builder<T, keyof T>,
-  config?: AsyncFactoryConfig
+  config?: AsyncFactoryConfig<T>
 ): Factory<T, keyof T> {
   return new Factory(builder, config);
 }
 
 export function makeFactoryWithRequired<T, K extends keyof T>(
   builder: Builder<T, Exclude<keyof T, K>>,
-  config?: AsyncFactoryConfig
+  config?: AsyncFactoryConfig<T>
 ): Factory<T, Exclude<keyof T, K>> {
   return new Factory(builder, config);
 }
 
 export function makeFactoryFromSync<T, K extends keyof T = keyof T>(
   builder: Sync.Builder<T, K>,
-  config?: AsyncFactoryConfig
+  config?: AsyncFactoryConfig<T>
 ): Factory<T, K> {
   return new Factory(builder as Async.Builder<T, K>, config);
 }
