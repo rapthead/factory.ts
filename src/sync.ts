@@ -1,8 +1,9 @@
 import { RecPartial, Omit, recursivePartialOverride } from "./shared";
 import * as cloneDeep from "clone-deep";
 
-export interface SyncFactoryConfig {
+export interface SyncFactoryConfig<T> {
   readonly startingSequenceNumber?: number;
+  readonly afterBuild?: (m: T) => void;
 }
 
 export class Generator<T> {
@@ -34,7 +35,7 @@ export class Factory<T, K extends keyof T = keyof T> {
 
   constructor(
     readonly builder: Builder<T, K>,
-    private readonly config: SyncFactoryConfig | undefined
+    private readonly config: SyncFactoryConfig<T> | undefined
   ) {
     this.seqNum = this.getStartingSequenceNumber();
   }
@@ -57,6 +58,7 @@ export class Factory<T, K extends keyof T = keyof T> {
         (v as any)[der.key] = der.derived.build(v, seqNum);
       }
     }
+    this.config && this.config.afterBuild && this.config.afterBuild(v)
     return v;
   }) as FactoryFunc<T, K>;
 
@@ -232,14 +234,14 @@ function buildBase<T, K extends keyof T>(
 
 export function makeFactory<T>(
   builder: Builder<T>,
-  config?: SyncFactoryConfig
+  config?: SyncFactoryConfig<T>
 ): Factory<T> {
   return new Factory(builder, config);
 }
 
 export function makeFactoryWithRequired<T, K extends keyof T>(
   builder: Builder<T, Exclude<keyof T, K>>,
-  config?: SyncFactoryConfig
+  config?: SyncFactoryConfig<T>
 ): Factory<T, Exclude<keyof T, K>> {
   return new Factory(builder, config);
 }
