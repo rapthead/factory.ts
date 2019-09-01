@@ -59,7 +59,7 @@ export class Factory<T, K extends keyof T = keyof T>
 
   constructor(
     readonly builder: Builder<T, K>,
-    private readonly config: AsyncFactoryConfig<T> | undefined
+    private readonly config?: AsyncFactoryConfig<T>
   ) {
     this.seqNum = this.getStartingSequenceNumber();
   }

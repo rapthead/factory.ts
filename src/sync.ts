@@ -28,14 +28,19 @@ export type ListFactoryFunc<T, K extends keyof T> = keyof T extends K
   ? (count: number, item?: RecPartial<T>) => T[]
   : (count: number, item: RecPartial<T> & Omit<T, K>) => T[];
 
-export class Factory<T, K extends keyof T = keyof T> {
+export interface IFactory<T, K extends keyof T = keyof T> {
+  build: FactoryFunc<T, K>;
+  buildList: ListFactoryFunc<T, K>;
+}
+export class Factory<T, K extends keyof T = keyof T>
+  implements IFactory<T, K> {
   private seqNum: number;
   private getStartingSequenceNumber = () =>
     (this.config && this.config.startingSequenceNumber) || 0;
 
   constructor(
     readonly builder: Builder<T, K>,
-    private readonly config: SyncFactoryConfig<T> | undefined
+    private readonly config?: SyncFactoryConfig<T>
   ) {
     this.seqNum = this.getStartingSequenceNumber();
   }
@@ -73,8 +78,8 @@ export class Factory<T, K extends keyof T = keyof T> {
     return ts;
   }) as ListFactoryFunc<T, K>;
 
-  public extend(def: RecPartial<Builder<T, K>>): Factory<T, K> {
-    const builder = Object.assign({}, this.builder, def);
+  public extend<K1 extends keyof T>(def: RecPartial<Builder<T, K1>>): Factory<T, K | K1> {
+    const builder = (Object.assign({}, this.builder, def)) as Builder<T, K | K1>;
     return new Factory(builder, this.config);
   }
 
